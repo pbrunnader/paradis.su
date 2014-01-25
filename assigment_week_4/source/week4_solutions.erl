@@ -91,7 +91,6 @@ count_atoms(A, X) ->
   end.
 
 matching(A,T,L) -> 
-  
   if
     T == 'atom' ->
       [_|List] = L, 
