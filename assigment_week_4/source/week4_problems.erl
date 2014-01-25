@@ -19,7 +19,7 @@ test_easy() ->
 test_hard() ->
     "<b>BB<i>II</i></b><i>CC</i>" = 
     week4_solutions:expand_markup("**BB__II**CC__"),
-    % test_count_atoms(),
+    test_count_atoms(),
     whoopy.
 
 
