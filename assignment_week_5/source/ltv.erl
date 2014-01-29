@@ -1,5 +1,5 @@
 % 
-% This is the "week4 assignment" for the course "Parallel and distributed programming" 
+% This is the "week5 assignment" for the course "Parallel and distributed programming" 
 % at the Stockholm University 
 % 
 % @author Peter Brunnader 
