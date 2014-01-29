@@ -25,7 +25,7 @@ encode(V) when is_integer(V) ->
 	BinarySize = bit_size(Binary),
 	<<2:1/big-signed-integer-unit:8, BinarySize:4/big-signed-integer-unit:8, Binary/binary >>;
 encode(V) when is_float(V) ->
-	Binary = term_to_binary(V),
+	Binary = float_to_binary(V),
 	BinarySize = bit_size(Binary),
 	<<3:1/big-signed-integer-unit:8, BinarySize:4/big-signed-integer-unit:8, Binary/binary >>;
 encode(_) ->
@@ -34,8 +34,11 @@ encode(_) ->
 
 decode_seq(B) when <<>> == B -> 
 	[];
-decode_seq(<<Type:1/big-signed-integer-unit:8, Size:4/big-signed-integer-unit:8, Binary/binary>>) when Type == 1; Type == 2; Type == 3 -> 
+decode_seq(<<Type:1/big-signed-integer-unit:8, Size:4/big-signed-integer-unit:8, Binary/binary>>) when Type == 1; Type == 2 -> 
 	<<BinaryValue:Size/binary-unit:1, RestBinary/binary>> = Binary,
 	[binary_to_term(BinaryValue)] ++ decode_seq(RestBinary);
+decode_seq(<<Type:1/big-signed-integer-unit:8, Size:4/big-signed-integer-unit:8, Binary/binary>>) when Type == 3 -> 
+	<<BinaryValue:Size/binary-unit:1, RestBinary/binary>> = Binary,
+	[binary_to_float(BinaryValue)] ++ decode_seq(RestBinary);
 decode_seq(<<_:1/big-signed-integer-unit:8, _:4/big-signed-integer-unit:8, _/binary>>) -> 
 	throw("Invalid value-type transmitted.").
