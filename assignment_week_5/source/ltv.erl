@@ -34,13 +34,7 @@ encode(_) ->
 
 decode_seq(B) when <<>> == B -> 
 	[];
-decode_seq(<<1:1/big-signed-integer-unit:8, Size:4/big-signed-integer-unit:8, Binary/binary>>) -> 
-	<<BinaryValue:Size/binary-unit:1, RestBinary/binary>> = Binary,
-	[binary_to_term(BinaryValue)] ++ decode_seq(RestBinary);
-decode_seq(<<2:1/big-signed-integer-unit:8, Size:4/big-signed-integer-unit:8, Binary/binary>>) -> 
-	<<BinaryValue:Size/binary-unit:1, RestBinary/binary>> = Binary,
-	[binary_to_term(BinaryValue)] ++ decode_seq(RestBinary);
-decode_seq(<<4:1/big-signed-integer-unit:8, Size:4/big-signed-integer-unit:8, Binary/binary>>) -> 
+decode_seq(<<Type:1/big-signed-integer-unit:8, Size:4/big-signed-integer-unit:8, Binary/binary>>) when Type == 1; Type == 2; Type == 3 -> 
 	<<BinaryValue:Size/binary-unit:1, RestBinary/binary>> = Binary,
 	[binary_to_term(BinaryValue)] ++ decode_seq(RestBinary);
 decode_seq(<<_:1/big-signed-integer-unit:8, _:4/big-signed-integer-unit:8, _/binary>>) -> 
