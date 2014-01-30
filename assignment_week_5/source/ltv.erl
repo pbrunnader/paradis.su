@@ -9,6 +9,12 @@
 -module(ltv).
 -export([encode_seq/1,decode_seq/1]).
 
+
+%% @type encode_seq(list(L)) = binary().
+%% @type decode_seq(binary()) = list(L).
+%% @type encode(list()|integer()|float()) = binary().
+
+
 encode_seq([H|T]) when erlang:length(T) == 0 -> 
 	encode(H);
 encode_seq([H|T]) -> 
