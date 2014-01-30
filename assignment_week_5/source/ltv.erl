@@ -33,7 +33,7 @@ encode(V) when is_float(V) ->
 	BinarySize = bit_size(Binary),
 	<<3:1/big-signed-integer-unit:8, BinarySize:4/big-signed-integer-unit:8, Binary/binary >>;
 encode(_) ->
-	throw("Invalid parameter given.").
+	throw("Invalid data-type given.").
 
 
 -spec decode_seq(binary()) -> list().
@@ -46,4 +46,4 @@ decode_seq(<<Type:1/big-signed-integer-unit:8, Size:4/big-signed-integer-unit:8,
 	<<BinaryValue:Size/binary-unit:1, RestBinary/binary>> = Binary,
 	[binary_to_float(BinaryValue)] ++ decode_seq(RestBinary);
 decode_seq(<<_:1/big-signed-integer-unit:8, _:4/big-signed-integer-unit:8, _/binary>>) -> 
-	throw("Invalid value-type transmitted.").
+	throw("Invalid data-type transmitted.").
