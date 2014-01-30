@@ -10,11 +10,7 @@
 -export([encode_seq/1,decode_seq/1]).
 
 
-%% @type encode_seq(list(L)) = binary().
-%% @type decode_seq(binary()) = list(L).
-%% @type encode(list()|integer()|float()) = binary().
-
-
+-spec encode_seq(list()) -> binary().
 encode_seq([H|T]) when erlang:length(T) == 0 -> 
 	encode(H);
 encode_seq([H|T]) -> 
@@ -22,6 +18,8 @@ encode_seq([H|T]) ->
 	B2 = encode_seq(T),
 	<<B1/binary, B2/binary>>.
 
+
+-spec encode(list()|integer()|float()) -> binary().
 encode(V) when is_list(V) ->
 	Binary = term_to_binary(V),
 	BinarySize = bit_size(Binary),
@@ -38,6 +36,7 @@ encode(_) ->
 	throw("Invalid parameter given.").
 
 
+-spec decode_seq(binary()) -> list().
 decode_seq(B) when <<>> == B -> 
 	[];
 decode_seq(<<Type:1/big-signed-integer-unit:8, Size:4/big-signed-integer-unit:8, Binary/binary>>) when Type == 1; Type == 2 -> 
