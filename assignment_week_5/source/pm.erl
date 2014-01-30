@@ -11,7 +11,7 @@
 
 
 -type packet() :: binary().
--spec binary_to_packet(list()) -> packet().
+-spec binary_to_packet(binary()) -> packet().
 binary_to_packet(B) when is_binary(B) -> 
 	BinarySize = byte_size(B),
 	<<BinarySize:4/big-unsigned-integer-unit:8, B/binary>>.

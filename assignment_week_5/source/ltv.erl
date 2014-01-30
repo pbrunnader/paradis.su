@@ -18,8 +18,8 @@ encode_seq([H|T]) ->
 	B2 = encode_seq(T),
 	<<B1/binary, B2/binary>>.
 
-
--spec encode(list()|integer()|float()) -> binary().
+-type datatype() :: list() | integer() | float().
+-spec encode(datatype()) -> binary().
 encode(V) when is_list(V) ->
 	Binary = term_to_binary(V),
 	BinarySize = bit_size(Binary),
