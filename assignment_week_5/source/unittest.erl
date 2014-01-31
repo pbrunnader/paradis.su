@@ -8,7 +8,7 @@ test_all() ->
 	all.
 
 test_ltv() ->
-    M = ltv,
+    M = tlv,
 
 	I1 = [9],
 	T1 = M:encode_seq(I1),
@@ -18,28 +18,37 @@ test_ltv() ->
 	T2 = M:encode_seq(I2),
 	I2 = M:decode_seq(T2),
 
-	I3 = [1.23,2.34,3.45],
-	T3 = M:encode_seq(I3),
-	I3 = M:decode_seq(T3),
+	% I3 = [1.23,2.34,3.45],
+	% T3 = M:encode_seq(I3),
+	% I3 = M:decode_seq(T3),
 
 	I4 = ["a","b","c"],
 	T4 = M:encode_seq(I4),
 	I4 = M:decode_seq(T4),
 
-	I5 = [1983,0.12345,"abced"],
+	I5 = [1983,1.234,"abced"],
 	T5 = M:encode_seq(I5),
 	I5 = M:decode_seq(T5),
 
-	I6 = [1/3,1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000],
+	I6 = [0.3333333],
 	T6 = M:encode_seq(I6),
 	I6 = M:decode_seq(T6),
 
-	T7 = <<0,0,0,0,24,131,97,123,2,0,0,0,48,131,98,0,0,1,200>>,
+	I7 = [2147483648],
 	try
-		M:decode_seq(T7)
+		T7 = M:encode_seq(I7),
+		I7 = M:decode_seq(T7)
 	catch
-		throw:Term -> Term,
-		"Invalid data-type transmitted." = Term
+		throw:Term7 -> Term7,
+		"Invalid Integer value! The accepted range is from 2147483647 to -2147483648." = Term7
+	end,
+
+	T8 = <<0,0,0,0,24,131,97,123,2,0,0,0,48,131,98,0,0,1,200>>,
+	try
+		M:decode_seq(T8)
+	catch
+		throw:Term8 -> Term8,
+		"Invalid data-type transmitted or length of data." = Term8
 	end,
 	
     juhu.
@@ -74,8 +83,8 @@ test_pm() ->
 	try
 		B6 = M:packet_to_term(<<0,0,0,6,131,98,7,91,205>>)
 	catch
-		throw:Term -> Term,
-		"Real binary size does not match with expected one." = Term
+		throw:Term6 -> Term6,
+		"Real binary size does not match with expected one." = Term6
 	end,
 
 	yes.
@@ -97,8 +106,15 @@ test_dcd() ->
 	try
 		B3 = M:packet_to_term_with_checksum(<<0,0,0,6,50,99,161,23,11,249,6,97,133,136,218,184,242,36,65,234,131,1,2,91,205,21>>)
 	catch
-		throw:Term -> Term,
-		"Packet was altered during transmission." = Term
+		throw:Term3 -> Term3,
+		"Packet was altered during transmission." = Term3
+	end,
+	
+	try
+		M:packet_to_term_with_checksum(<<0,0,0,6,50,99,161,23,11,249,6,97,133,136,218,184,242,36,65,234,131,98,7>>)
+	catch
+		throw:Term4 -> Term4,
+		"Real binary size does not match with expected one." = Term4
 	end,
 	
 	nice.
