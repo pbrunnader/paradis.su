@@ -7,7 +7,7 @@
 % 
 
 -module(tlv).
--export([encode_seq/1,decode_seq/1]).
+-export([encode_seq/1,decode_seq/1,safe_encode_seq/1,safe_decode_seq/1]).
 
 
 -spec encode_seq(list()) -> binary().
@@ -48,3 +48,47 @@ decode_seq(<<3:1/big-signed-integer-unit:8, 4:4/big-signed-integer-unit:8, V:64/
 	[V] ++ decode_seq(RestBinary);
 decode_seq(<<_:1/big-signed-integer-unit:8, _:4/big-signed-integer-unit:8, _/binary>>) -> 
 	throw("Invalid data-type transmitted or length of data.").
+
+
+-spec safe_encode_seq(list()) -> binary().
+safe_encode_seq([H|T]) when erlang:length(T) == 0 -> 
+	safe_encode(H);
+safe_encode_seq([H|T]) -> 
+	B1 = safe_encode(H),
+	B2 = safe_encode_seq(T),
+	<<B1/binary, B2/binary>>.
+
+
+-spec safe_encode(integer()) -> binary().
+% signed 32-bits
+safe_encode(V) when is_integer(V), V >= -2147483648, V =< 2147483647 -> 
+	<<1:1/big-signed-integer-unit:8, 4:4/big-signed-integer-unit:8, V:4/big-signed-integer-unit:8 >>;
+% unsigned 32-bits
+safe_encode(V) when is_integer(V), V >= 0, V =< 4294967295 -> 
+	<<2:1/big-signed-integer-unit:8, 4:4/big-signed-integer-unit:8, V:4/big-unsigned-integer-unit:8 >>;
+% signed 64-bits
+safe_encode(V) when is_integer(V), V >= -9223372036854775808, V =< 9223372036854775807 -> 
+	<<3:1/big-signed-integer-unit:8, 8:4/big-signed-integer-unit:8, V:8/big-signed-integer-unit:8 >>;
+% unsigned 64-bits
+safe_encode(V) when is_integer(V), V >= 0, V =< 18446744073709551615 -> 
+	<<4:1/big-signed-integer-unit:8, 8:4/big-signed-integer-unit:8, V:8/big-unsigned-integer-unit:8 >>;
+safe_encode(V) when is_integer(V), V > 0 ->
+	throw("Invalid data: value is to big!");
+safe_encode(V) when is_integer(V), V < 0 ->
+	throw("Invalid data: value is to small!");
+safe_encode(_) ->
+	throw("Invalid data: unknown data format given!").
+
+
+-spec safe_decode_seq(binary()) -> list().
+safe_decode_seq(B) when <<>> == B -> 
+	[];
+safe_decode_seq(<<1:1/big-signed-integer-unit:8, 4:4/big-signed-integer-unit:8, V:4/big-signed-integer-unit:8, RestBinary/binary>>) -> 
+	[V] ++ safe_decode_seq(RestBinary);
+safe_decode_seq(<<2:1/big-signed-integer-unit:8, 4:4/big-signed-integer-unit:8, V:4/big-unsigned-integer-unit:8, RestBinary/binary>>) -> 
+	[V] ++ safe_decode_seq(RestBinary);
+safe_decode_seq(<<3:1/big-signed-integer-unit:8, 8:4/big-signed-integer-unit:8, V:8/big-signed-integer-unit:8, RestBinary/binary>>) -> 
+	[V] ++ safe_decode_seq(RestBinary);
+safe_decode_seq(<<4:1/big-signed-integer-unit:8, 8:4/big-signed-integer-unit:8, V:8/big-unsigned-integer-unit:8, RestBinary/binary>>) -> 
+	[V] ++ safe_decode_seq(RestBinary).
+	

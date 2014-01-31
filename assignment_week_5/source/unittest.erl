@@ -1,13 +1,63 @@
 -module(unittest).
--export([test_ltv/0, test_pm/0, test_dcd/0, test_all/0]).
+-export([test_tlv/0, test_safe_tlv/0, test_pm/0, test_dcd/0, test_all/0]).
 
 test_all() ->
-	test_ltv(),
+	test_tlv(),
+	test_safe_tlv(),
 	test_pm(),
 	test_dcd(),
 	all.
 
-test_ltv() ->
+test_safe_tlv() ->
+	M = tlv,
+	
+	% test of signed 32 bit integer
+	I1 = [-2147483648,-10,0,10,1234567890,2147483647],
+	T1 = M:safe_encode_seq(I1),
+	I1 = M:safe_decode_seq(T1),
+
+	% test of unsigned 32 bit integer
+	I2 = [2147483648,4294967295],
+	T2 = M:safe_encode_seq(I2),
+	I2 = M:safe_decode_seq(T2),
+
+	% test of signed 64 bit integer
+	I3 = [-9223372036854775808,9223372036854775807],
+	T3 = M:safe_encode_seq(I3),
+	I3 = M:safe_decode_seq(T3),
+
+	% test of unsigned 64 bit integer
+	I4 = [9223372036854775808,18446744073709551615],
+	T4 = M:safe_encode_seq(I4),
+	I4 = M:safe_decode_seq(T4),
+	
+	try
+		I5 = [18446744073709551616],
+		T5 = M:safe_encode_seq(I5)
+	catch
+		throw:Term5 -> Term5,
+		"Invalid data: value is to big!" = Term5
+	end,
+
+	try
+		I6 = [-9223372036854775809],
+		T6 = M:safe_encode_seq(I6)
+	catch
+		throw:Term6 -> Term6,
+		"Invalid data: value is to small!" = Term6
+	end,
+
+	try
+		I7 = ["abc"],
+		T7 = M:safe_encode_seq(I7)
+	catch
+		throw:Term7 -> Term7,
+		"Invalid data: unknown data format given!" = Term7
+	end,
+	
+	yeah.
+
+test_tlv() ->
     M = tlv,
 
 	I1 = [9],
