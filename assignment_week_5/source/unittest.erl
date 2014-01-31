@@ -1,11 +1,12 @@
 -module(unittest).
--export([test_tlv/0, test_safe_tlv/0, test_pm/0, test_dcd/0, test_all/0]).
+-export([test_tlv/0, test_safe_tlv/0, test_pm/0, test_dcd/0, test_all/0, test_markdown/0]).
 
 test_all() ->
 	test_tlv(),
 	test_safe_tlv(),
 	test_pm(),
 	test_dcd(),
+	test_markdown(),
 	all.
 
 test_safe_tlv() ->
@@ -169,3 +170,15 @@ test_dcd() ->
 	
 	nice.
 
+test_markdown() ->
+	M = markdown,
+	
+	try
+		M:expand_file("NotExistingFile.txt")
+	catch
+		throw:Term -> Term,
+		"Could not read file: does not exist!" = Term
+	end,
+	
+	M:expand_file("File.txt"),
+	file_created.

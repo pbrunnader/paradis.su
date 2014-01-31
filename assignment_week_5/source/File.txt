@@ -1,0 +1,8 @@
+#Markdown
+Markdown is a language for converting a simple text markup language to HTML. The first exercise is to make a simple markdown processor. Markdown is described at http://daringfireball.net/projects/markdown/ Assume that the input to a markdown processor uses the following conventions to delimit the different blocks in input:
+##markdown:parse_binary(Bin)
+Start by writing a function markdown:parse_binary(Bin) which parses a binary and returns a list of markdown blocks in the binary.
+##markdown:parse_to_html(L)
+Once we have a parse tree. We want to turn it into HTML, write a function to expand the parser tree that you obtained in the previous section, and convert it to HTML.
+##markdown:expand_file(F)
+The function markdown:expand_file(F) should read the file F using file:read_file(F) the result is be a tuple {ok, B} where B is a binary containing the content of the file F. Parse the resultant binary using markdown:parse_binary(B) and turn the parse tree into HTML using markdown:parse_to_html. Write the result in a file File.html. Test this in a browser for various inputs.
