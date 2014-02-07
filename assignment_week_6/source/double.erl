@@ -11,7 +11,8 @@
 
 start() ->
 	Pid = spawn(double, loop, []),
-	register(double, Pid).
+	register(double, Pid),
+	Pid.
 	
 loop() -> 
 	receive
