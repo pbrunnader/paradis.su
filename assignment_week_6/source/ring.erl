@@ -13,44 +13,43 @@
 % M = number of rounds
 
 start(N,M) ->
-	Pid = spawn_link(ring, loop, []),
-	register(root, Pid),
-	io:format("Root ~p!~n",[Pid]),
-	startProcess(N-1,Pid),
-	io:format("=====================================~n"),
-	Pid ! {M, 0}.
+	io:format("Masterprocess!~n"),
+	Pid = createNode(N,nil),
+	Result = Pid ! {M,0},
+	io:format("RESULT: ~p ~n",[Result]).
 
-startProcess(1,_) ->
-	P = whereis(root),
-	Pid = spawn_link(ring, loop, [P]),
-	io:format("Created ~p -> ~p ~n",[P, Pid]),
+
+createNode(N,nil) ->
+	Pid = spawn_link(ring, loop, [nil]),
+	createNode(N-1,Pid),
 	Pid;
-
-startProcess(N,P) ->
+createNode(0,P) ->
 	Pid = spawn_link(ring, loop, [P]),
-	io:format("Created ~p -> ~p ~n",[P, Pid]),
-	startProcess(N-1,Pid).
+	register(circle, Pid);
+createNode(N,P) ->
+	Pid = spawn_link(ring, loop, [P]),
+	createNode(N-1,Pid).
 
-loop() ->
-	loop(whereis(root)).
-
+loop(nil) -> 
+	receive
+		{TTL,Integer} -> 
+			Pid = whereis(circle),
+			io:format("~p ... ~p!~n",[Pid,Integer]),
+			Pid ! {TTL-1,Integer+1},
+			io:format("~n"),
+			loop(nil);
+		_ -> 
+			exit("Unexpected data type.")
+	end;
 loop(Pid) -> 
 	link(Pid),
-	io:format("~p <==> ~p ~n",[Pid, self()]),
 	process_flag(trap_exit, true),
 	receive
 		{0, Integer} ->
-			io:format("TTL=0; Integer:~p; ~n!!!!!!!!!!!! ~n",[Integer]);
+			io:format("~p ... ~p!~n",[Pid,Integer]),
+			{0, Integer};
 		{TTL,Integer} -> 
-			io:format("TTL=~p; Integer:~p; ~n",[TTL,Integer]),
-			Root = whereis(root),
-			if
-				Pid == Root ->
-					Pid ! {TTL-1,Integer+1};
-				true ->
-					Pid ! {TTL,Integer+1}
-			end,
-			loop(Pid);
-		_ -> 
-			exit("Unexpected data type.")
+			io:format("~p ... ~p?~n",[Pid,Integer]),
+			Pid ! {TTL,Integer+1},
+			loop(Pid)
 	end.
