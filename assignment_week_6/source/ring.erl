@@ -12,31 +12,40 @@
 % N = number of processes
 % M = number of rounds
 
-start(N,M) ->
-	Pid = build(N),
-	Pid ! {0, M},
-	loop(Pid, true).
+start(M, N) ->
+	Pid = spawn_link(ring, create_node, [N]),
+	io:format("Root Process ~p ~n", [self()]),
+	Pid ! {M, 0},
+	io:format("End.").
 
-build(N) ->
-	Nodes = fun(_Num, Pid) -> 
-		spawn(ring, loop, [Pid, false]) end,
-		lists:foldl(Nodes, self(), lists:seq(1, N-1)).
+create_node(N) ->
+	    % io:format("Create Process ~p (~p)~n", [self(), N]),
+	    Pid = spawn_link(ring, create_node, [N-1, self()]),
+	    loop(Pid,false).
 
-loop(Pid, Last) ->
+create_node(1, Last) ->
+	    % io:format("Connect first and last Process ~p - ~p~n", [self(), Last]),
+	    loop(Last,true);
+create_node(N, Last) ->
+	    % io:format("Create Process ~p (~p)~n", [self(), N]),
+	    Pid = spawn_link(ring, create_node, [N-1, Last]),
+	    loop(Pid,false).
+
+loop(Pid,Round) ->
 	link(Pid),
 	process_flag(trap_exit, true),
+
 	receive
-		{Number, 0} ->
-			io:format("Process ~p received ~p (X), forwarding to ~p~n", [self(), Number, Pid]),
-			exit("Ende.");
-		{Number, 1} ->
-			io:format("Process ~p received ~p (X), forwarding to ~p~n", [self(), Number, Pid]),
-			Pid ! {Number+1, 1};
-		{Number, TTL} ->
-			io:format("Process ~p received ~p (~p), forwarding to ~p~n", [self(), Number, TTL, Pid]),
-			case Last of
-				true -> Pid ! {Number+1, TTL - 1};
-				false -> Pid ! {Number+1, TTL}
+		{0, I} -> I,
+	    	io:format("~p ~p ~p ~n", [self(), 0, I]),
+			{0, I};
+	    {TTL, I} ->
+	    	io:format("~p ~p ~p ~n", [self(), TTL, I]),
+	    	if
+				Round == true ->
+					Pid ! {TTL-1, I+1};
+				Round == false ->
+					Pid ! {TTL, I+1}
 			end,
-			loop(Pid, Last)
-	end.
+	        loop(Pid,Round)
+	    end. 
