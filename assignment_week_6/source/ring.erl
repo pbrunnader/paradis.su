@@ -9,43 +9,62 @@
 -module(ring).
 -compile(export_all).
 
-% N = number of processes
-% M = number of rounds
+start(N,M) when is_integer(N), N > 0, is_integer(M), M > 0 ->
+	    Nodes = [spawn_link(ring, node, [ID, self()]) || ID <- lists:seq(1, N)],
+	
+		% build ring COPY first Node to the end of the list
+	    ring:build(Nodes ++ [hd(Nodes)]),
 
-start(M, N) ->
-	Pid = spawn_link(ring, create_node, [N]),
-	io:format("Root Process ~p ~n", [self()]),
-	Pid ! {M, 0},
-	io:format("End.").
+	    hd(Nodes) ! {M, 0},
+	
+		% waitung for result
+		receive
+			{'EXIT', _, Value} ->
+				io:format("Pid List ~p.~n",[Nodes]),
+				stop(Nodes),
+				Value
+		end.
 
-create_node(N) ->
-	    % io:format("Create Process ~p (~p)~n", [self(), N]),
-	    Pid = spawn_link(ring, create_node, [N-1, self()]),
-	    loop(Pid,false).
+stop([]) ->
+	stopped;
+stop([Pid|L]) ->
+	stop(L),
+	Run = erlang:is_process_alive(Pid),
+	if 
+		Run == false -> 
+			io:format("Not!~n");
+		true ->
+			io:format("Kill!~n")
+			% exit(Pid,"something")
+	end.
+	
 
-create_node(1, Last) ->
-	    % io:format("Connect first and last Process ~p - ~p~n", [self(), Last]),
-	    loop(Last,true);
-create_node(N, Last) ->
-	    % io:format("Create Process ~p (~p)~n", [self(), N]),
-	    Pid = spawn_link(ring, create_node, [N-1, Last]),
-	    loop(Pid,false).
+%connects the nodes to form a ring
+build([_]) ->
+	done;
+build([N1, N2 | Nodes]) ->
+	N1 ! {self(), '->', N2},
+	build([N2 | Nodes]).
 
-loop(Pid,Round) ->
+node(ID, Pid) ->
 	link(Pid),
-	process_flag(trap_exit, true),
-
+	% process_flag(trap_exit, true),
 	receive
-		{0, I} -> I,
-	    	io:format("~p ~p ~p ~n", [self(), 0, I]),
-			{0, I};
-	    {TTL, I} ->
-	    	io:format("~p ~p ~p ~n", [self(), TTL, I]),
-	    	if
-				Round == true ->
-					Pid ! {TTL-1, I+1};
-				Round == false ->
-					Pid ! {TTL, I+1}
-			end,
-	        loop(Pid,Round)
-	    end. 
+		{Pid, '->', PidNext} ->
+			node(ID, Pid, PidNext)
+	end.
+
+node(ID, Pid, PidNext) ->
+	receive
+		{TTL, Count} ->
+		    if
+				TTL > 0, ID == 1 ->
+			    	PidNext ! {TTL-1, Count + 1},
+			    	node(ID, Pid, PidNext);
+				TTL == 0, ID == 1 ->
+					Pid ! {'EXIT', self(), Count};
+				true ->
+					PidNext ! {TTL, Count + 1},
+					node(ID, Pid, PidNext)
+		    end
+	end.
