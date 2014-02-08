@@ -10,8 +10,9 @@
 -compile(export_all).
 
 benchmark() ->
-	N = lists:seq(1000, 1000000, 1000),
-	M = lists:seq(1000, 1000000, 1000),
+	N = lists:seq(1000, 10000, 1000),
+	M = lists:seq(9000, 10000, 1000),
+	% M = [10000],
 	io:format("# Nodes Rounds Time Sum ~n"),
 	benchmark(N,M).
 	
