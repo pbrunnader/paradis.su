@@ -9,6 +9,31 @@
 -module(ring).
 -compile(export_all).
 
+benchmark() ->
+	N = lists:seq(1000, 1000000, 1000),
+	M = lists:seq(1000, 1000000, 1000),
+	io:format("# Nodes Rounds Time Sum ~n"),
+	benchmark(N,M).
+	
+% benchmark(_,[]) ->
+% 	done;
+benchmark([Node|Nodes],[Round|[]]) when Node > hd(Nodes), is_integer(Round) ->
+	ring:time(Node, Round);
+benchmark([Node|Nodes],[Round|[]]) when is_integer(Round) ->
+	ring:time(Node, Round),
+	benchmark(Nodes ++ [Node], [Round]);
+benchmark([Node|Nodes],[Round|Rounds]) when Node > hd(Nodes) ->
+	ring:time(Node, Round),
+	benchmark(Nodes ++ [Node], Rounds);
+benchmark([Node|Nodes],[Round|Rounds]) ->
+	ring:time(Node,Round),
+	benchmark(Nodes ++ [Node], [Round] ++ Rounds).
+
+time(N,M) ->
+	{Time,Result} = timer:tc(ring,start,[N,M]),
+	io:format("~p ~p ~p ~p~n",[N,M,Time,Result]),
+	ok.
+
 start(N,M) when is_integer(N), N > 0, is_integer(M), M > 0 ->
 	    Nodes = [spawn_link(ring, node, [ID, self()]) || ID <- lists:seq(1, N)],
 	
