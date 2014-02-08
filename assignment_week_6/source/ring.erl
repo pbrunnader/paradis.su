@@ -20,24 +20,8 @@ start(N,M) when is_integer(N), N > 0, is_integer(M), M > 0 ->
 		% waitung for result
 		receive
 			{'EXIT', _, Value} ->
-				io:format("Pid List ~p.~n",[Nodes]),
-				stop(Nodes),
 				Value
 		end.
-
-stop([]) ->
-	stopped;
-stop([Pid|L]) ->
-	stop(L),
-	Run = erlang:is_process_alive(Pid),
-	if 
-		Run == false -> 
-			io:format("Not!~n");
-		true ->
-			io:format("Kill!~n")
-			% exit(Pid,"something")
-	end.
-	
 
 %connects the nodes to form a ring
 build([_]) ->
