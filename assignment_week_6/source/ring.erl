@@ -13,43 +13,30 @@
 % M = number of rounds
 
 start(N,M) ->
-	io:format("Masterprocess!~n"),
-	Pid = createNode(N,nil),
-	Result = Pid ! {M,0},
-	io:format("RESULT: ~p ~n",[Result]).
+	Pid = build(N),
+	Pid ! {0, M},
+	loop(Pid, true).
 
+build(N) ->
+	Nodes = fun(_Num, Pid) -> 
+		spawn(ring, loop, [Pid, false]) end,
+		lists:foldl(Nodes, self(), lists:seq(1, N-1)).
 
-createNode(N,nil) ->
-	Pid = spawn_link(ring, loop, [nil]),
-	createNode(N-1,Pid),
-	Pid;
-createNode(0,P) ->
-	Pid = spawn_link(ring, loop, [P]),
-	register(circle, Pid);
-createNode(N,P) ->
-	Pid = spawn_link(ring, loop, [P]),
-	createNode(N-1,Pid).
-
-loop(nil) -> 
-	receive
-		{TTL,Integer} -> 
-			Pid = whereis(circle),
-			io:format("~p ... ~p!~n",[Pid,Integer]),
-			Pid ! {TTL-1,Integer+1},
-			io:format("~n"),
-			loop(nil);
-		_ -> 
-			exit("Unexpected data type.")
-	end;
-loop(Pid) -> 
+loop(Pid, Last) ->
 	link(Pid),
 	process_flag(trap_exit, true),
 	receive
-		{0, Integer} ->
-			io:format("~p ... ~p!~n",[Pid,Integer]),
-			{0, Integer};
-		{TTL,Integer} -> 
-			io:format("~p ... ~p?~n",[Pid,Integer]),
-			Pid ! {TTL,Integer+1},
-			loop(Pid)
+		{Number, 0} ->
+			io:format("Process ~p received ~p (X), forwarding to ~p~n", [self(), Number, Pid]),
+			exit("Ende.");
+		{Number, 1} ->
+			io:format("Process ~p received ~p (X), forwarding to ~p~n", [self(), Number, Pid]),
+			Pid ! {Number+1, 1};
+		{Number, TTL} ->
+			io:format("Process ~p received ~p (~p), forwarding to ~p~n", [self(), Number, TTL, Pid]),
+			case Last of
+				true -> Pid ! {Number+1, TTL - 1};
+				false -> Pid ! {Number+1, TTL}
+			end,
+			loop(Pid, Last)
 	end.
