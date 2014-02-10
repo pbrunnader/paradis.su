@@ -65,15 +65,18 @@ node(ID, Pid) ->
 
 node(ID, Pid, PidNext) ->
 	receive
-		{TTL, Count} ->
+		{TTL, Count} when is_integer(TTL) ->
 		    if
 				TTL > 0, ID == 1 ->
-			    	PidNext ! {TTL-1, Count + 1},
-			    	node(ID, Pid, PidNext);
+					PidNext ! {TTL-1, Count + 1},
+					node(ID, Pid, PidNext);
 				TTL == 0, ID == 1 ->
+					PidNext ! {'EXIT', self()},
 					Pid ! {'EXIT', self(), Count};
 				true ->
 					PidNext ! {TTL, Count + 1},
 					node(ID, Pid, PidNext)
-		    end
+		    end;
+		{'EXIT', _ } ->
+			PidNext ! {'EXIT', self()}
 	end.
