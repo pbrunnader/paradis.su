@@ -8,81 +8,91 @@
 
 -module(reliable).
 -compile(export_all).
-
+	
 start() ->
-	PidDouble = spawn(?MODULE, double, []),
-	register(double, PidDouble),
-	io:format("Registered server called double started: ~p~n",[PidDouble]),
-	% PidCrash = spawn(?MODULE, crash, []),
-	% io:format("Server started to send invalid messages: ~p~n",[PidCrash]),
-	PidMonitor = spawn_link(?MODULE, monitor, [PidDouble]),
-	io:format("Monitor started to watch started double server: ~p~n",[PidMonitor]),
-	ok.
-	
-client() ->
-	sleep(2),
-	client(1).
-	
-client(10) ->
+	print("START: 'double' process."),
+	register(double, spawn(?MODULE, double, [])),
+	print("START: 'crash' process with randomness."),
+	spawn(?MODULE, crash, []),
+	print("START: 'monitor' process."),
+	spawn_link(?MODULE, monitor, []),
+	print("START: usage to run a client process is:"),
+	print("START: reliable:client(<integer>).").
+
+
+monitor() -> 
+	print("MONITOR: Monitor the 'double' process."),
 	Pid = whereis(double),
-	Pid ! {self(), 2},
-	receive
-		{From, Value} when is_integer(Value) -> 
-			io:format(self(),"Server response: ~p~n",[Value])
-	% after 
-	% 	2000 ->
-	% 		io:format(self(),"Server response: missing abort!~p ~n",[self()])
-	end;
-client(X) when is_integer(X), X > 0 ->
-	Pid = whereis(double),
-	Pid ! {self(), 2},
-	receive
-		{From, Value} when is_integer(Value) ->
-			io:format(self(),"Server response: ~p~n",[Value])
-	% after 
-	% 	2000 ->
-	% 		io:format(self(),"Server response: waiting!~p ~n",[self()]),
-	% 		client(X+1)
+	link(Pid),
+	process_flag(trap_exit, true),
+	receive 
+		{'EXIT',Pid, _} ->
+			N = random(30),
+			print("MONITOR: Waiting for " ++ integer_to_list(N) ++ " seconds to restart."),
+			sleep(N),
+			print("MONITOR: Restart 'double' process NOW."),
+			register(double, spawn_link(?MODULE, double, [])),
+			monitor()
 	end.
-	
-double() -> 
-	io:format("JIHI:~p~n",[self()]),
+
+
+double() ->
 	receive
 		{From, Value} when is_integer(Value) -> 
-			io:format("JAHA: ~p~n",[Value*2]),
-			From ! {self(), Value * 2},
-			reliable:double();
-		% {_, Value} when is_atom(Value) ->
-		% 	exit("Invalid value given.");
+			From ! {self(), Value * 2}, 
+			double();
 		_ -> 
 			exit("Invalid value given.")
 	end.
-	
-monitor(Pid) -> 
-	link(Pid),
-	process_flag(trap_exit, true),
-	io:format("Process with Pid ~p is monitored.~n",[Pid]),
-	receive 
-		{'EXIT',Pid, Why} ->
-			io:format("Process with Pid ~p chrashed because ~p.~n",[Pid,Why]),
-			sleep(crypto:rand_uniform(1, 10)),
-			PidDouble = spawn(?MODULE, double, []),
-			register(double, PidDouble),
-			io:format("Registered server called double restarted: ~p~n",[PidDouble]),
-			PidMonitor = spawn_link(?MODULE, monitor, [PidDouble]),
-			io:format("Monitor started to watch restarted double server: ~p~n",[PidMonitor])
-	end.
-	
+
+
 crash() ->
-	sleep(crypto:rand_uniform(10, 20)),
-	Pid = whereis(double),
-	Pid ! {self(), crash},
-	crash().
-	
-	
+	sleep(random(30)),
+	print("CRASH: Send invalid message to 'double' process."),
+	try
+		whereis(double) ! {self(), crash}
+	after
+		print("CRASH: 'double' process not running."),
+		crash()
+	end.
+
+
+client(Number) when is_integer(Number) ->
+	client(whereis(double), 1, Number).
+
+client(_, 11, _) ->
+	print("Client: Stop trying to send message!");
+client(undefined, Try, Number) ->
+	sleep(1),
+	print("Client: Non successful attempt #" ++ integer_to_list(Try) ++ "."),
+	client(whereis(double), Try+1, Number);
+client(Pid, Try, Number) when is_integer(Try), Try > 0, Try < 11 ->
+	try
+		Pid ! {self(), Number}
+	after
+		receive
+			{Pid, Value} when is_integer(Value) -> 
+				print("Client: Received result: " ++ integer_to_list(Number) ++ " * 2 => " ++ integer_to_list(Value) ++ "."),
+				Value;
+			_ ->
+				print(crash_detected)
+		after 1000 ->
+			print("Client: Non successful attempt #" ++ integer_to_list(Try) ++ "."),
+			client(whereis(double), Try+1, Number)
+		end
+	end.
+
+
 sleep(T) ->
-	%% sleep for T milliseconds
 	receive
 		after T*1000 ->
 	    	true
 	end.
+
+
+print(X) ->
+ 	io:format("~p~n",[X]).
+
+
+random(Max) ->
+	crypto:rand_uniform(1, Max).
