@@ -10,8 +10,8 @@
 -compile(export_all).
 
 benchmark() ->
-	N = lists:seq(1000, 10000, 1000),
-	M = lists:seq(1000, 10000, 1000),
+	N = [ 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768 ],
+	M = [ 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768 ],
 	io:format("# Nodes Rounds Time Sum ~n"),
 	benchmark(N,M).
 	
@@ -31,7 +31,7 @@ benchmark([Node|Nodes],[Round|Rounds]) ->
 
 time(N,M) ->
 	{Time,Result} = timer:tc(ring,start,[N,M]),
-	io:format("~p ~p ~p ~p~n",[N,M,Time,Result]),
+	io:format("~p ~p ~p ~p~n",[N,M,Time/1000000,Result]),
 	ok.
 
 start(N,M) when is_integer(N), N > 0, is_integer(M), M > 0 ->
