@@ -34,7 +34,7 @@ read_item([Item|Tail]) ->
 
 reverse_file(File) -> 
 	{ok, S} = file:open(File, [read,write,raw,binary]),
-	{ok, {file_info,Size,_,_,_,_,_,_,_,_,_,_,_,_}} = file:read_file_info(File),
+	Size = filelib:file_size(File),
 	swap_character(S, 0, Size-1).
 
 swap_character(File, Left, Right) when Left < Right, Left >= 0 ->
