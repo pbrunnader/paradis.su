@@ -13,14 +13,8 @@
 load_file(File) ->
 	Table = ets:new(country_codes, [set,named_table]),
 	{ok, Data} = file:consult(File),
-	load_line(Table, Data),
+	ets:insert(Table, Data),
 	Table.
-
-load_line(_, Data) when Data == [] ->
-	end_of_file;
-load_line(Table, [Head|Tail]) ->
-	ets:insert(Table, Head),
-	load_line(Table, Tail).
 
 start() -> 
 	load_file("country_codes.txt").
