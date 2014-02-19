@@ -10,9 +10,9 @@
 -export([test_all/0,test_country/0,test_ets_dets/0,test_mnesia/0,test_tracker/0]).
 
 test_all() ->
+	ok = test_mnesia(),
 	ok = test_country(),
 	ok = test_ets_dets(),
-	ok = test_mnesia(),
 	ok = test_tracker(),
 	success.
 
@@ -25,6 +25,7 @@ test_country() ->
 	{ok, "Austria"} = M:lookup(I, "AT"),
 	error = M:lookup(I, "JA"),
 	error = M:lookup(I, "XY"),
+	ok = M:stop(I),
 	ok.
 
 test_ets_dets() ->
@@ -43,12 +44,10 @@ test_ets_dets() ->
 test_mnesia() ->
 	io:format("normal: Mnesia~n"),
 	M = country_codes_db,
-	try
-		Result = M:do_this_once()
-	catch
-		throw:Term -> Term,
-		io:format("already 'do_this_once' executed~n")
-	end,
+	
+	% executed once
+	% M:do_this_once(),
+	
 	ok = M:start(),
 	{ok, "Sweden"} = M:select("SE"),
 	{ok, "Austria"} = M:select("AT"),

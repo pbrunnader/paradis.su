@@ -7,17 +7,21 @@
 % 
 
 -module(country_codes).
--export([start/0,lookup/2]).
+-export([start/0,lookup/2,stop/1]).
 
 
 load_file(File) ->
-	Table = ets:new(country_codes, [set,named_table]),
+	Table = ets:new(country_code, [set,named_table]),
 	{ok, Data} = file:consult(File),
 	ets:insert(Table, Data),
 	Table.
 
 start() -> 
 	load_file("country_codes.txt").
+	
+stop(EtsTable) ->
+	ets:delete(EtsTable),
+	ok.
 	
 lookup(EtsTable, Code) ->
 	case ets:lookup(EtsTable, Code) of
