@@ -9,6 +9,15 @@
 -module(unittest).
 -export([test_all/0,test_country/0,test_ets_dets/0,test_mnesia/0,test_tracker/0]).
 
+%
+% !!! THIS HAS TO BE EXECUTED ONCE !!!
+%
+% > country_codes_db:do_this_once().
+%
+% !!! THIS HAS TO BE EXECUTED ONCE !!!
+%
+
+
 test_all() ->
 	ok = test_mnesia(),
 	ok = test_country(),
