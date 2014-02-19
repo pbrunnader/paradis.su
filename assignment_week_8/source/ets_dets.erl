@@ -31,7 +31,8 @@ time(Type, Number) when Type == dets; Type == ets ->
 start(ets, Number) when Number > 0 ->
 	Table = ets:new(name_phone, [set,named_table]),
 	ets:insert(Table, [{ets_dets:name(), ets_dets:phone()} || _ <- lists:seq(1, Number)]),
-	ets:delete(Table);
+	ets:delete(Table),
+	ok;
 start(dets, Number) when Number > 0 ->
 	{ok, Table} = dets:open_file("ets_dets_" ++ integer_to_list(Number) ++ ".txt",[]),
 	ok = dets:insert(Table, [{ets_dets:name(), ets_dets:phone()} || _ <- lists:seq(1, Number)]),

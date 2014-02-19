@@ -17,7 +17,7 @@ do_this_once() ->
 			mnesia:start(),
 			mnesia:create_table(country_codes, [{attributes, record_info(fields, country_codes)}]),
 			mnesia:stop(),
-			init:stop(),
+			% init:stop(),
 			ok;
 		_ -> 
 			error
