@@ -55,7 +55,7 @@ test_mnesia() ->
 	M = country_codes_db,
 	
 	% executed once
-	% M:do_this_once(),
+	M:do_this_once(),
 	
 	ok = M:start(),
 	{ok, "Sweden"} = M:select("SE"),
@@ -64,6 +64,7 @@ test_mnesia() ->
 	ok = country_codes_db:update("AT","AUSTRIA"),
 	{ok, "SwEdEn"} = M:select("SE"),
 	{ok, "AUSTRIA"} = M:select("AT"),
+	M:stop(),
 	ok.
 
 test_tracker() ->
@@ -79,5 +80,6 @@ test_tracker() ->
 	ok = M:i_am_leaving("168.192.0.18"),
 	["168.192.0.10","168.192.0.88"] = M:who_wants("secret.txt"),
 	[] = M:who_wants("file.txt"),
+	M:stop(),
 	ok.
 	

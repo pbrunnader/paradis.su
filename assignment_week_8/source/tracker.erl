@@ -11,7 +11,7 @@
 -behaviour(gen_server).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/0,i_want/2,i_am_leaving/1,who_wants/1,ping/1]).
+-export([start/0,stop/0,i_want/2,i_am_leaving/1,who_wants/1,ping/1]).
 
 start() -> 
 	gen_server:start_link({local,?MODULE}, ?MODULE, dict:new(), []).
@@ -29,6 +29,8 @@ who_wants(File) ->
 ping(IP) ->
 	gen_server:call(?MODULE, {ping, IP}).
 
+stop() ->
+	gen_server:cast(?MODULE, stop).
 
 init(Dict) -> 
 	{ok, Dict}.
@@ -60,7 +62,8 @@ handle_call({ping, IP}, _, Dict) ->
 	io:format("ping: ~p~n",[IP]),
 	{reply, ok, Dict, 2000}.
 
-
+handle_cast(stop, State) ->
+	{stop, normal, State};
 handle_cast(_Msg, State) -> {noreply, State}.
 handle_info(_Info, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.

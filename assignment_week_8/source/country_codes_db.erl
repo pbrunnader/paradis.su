@@ -7,17 +7,19 @@
 % 
 
 -module(country_codes_db).
--export([do_this_once/0,start/0,select/1,update/2]).
+-export([do_this_once/0,start/0,stop/0,select/1,update/2]).
 
 -record(country_codes, {code, name}).
 
 do_this_once() ->
-	case mnesia:create_schema([node()]) of
+	Node = node(),
+	ok = mnesia:delete_schema([Node]),
+	case mnesia:create_schema([Node]) of
 		ok ->
 			mnesia:start(),
 			mnesia:create_table(country_codes, [{attributes, record_info(fields, country_codes)}]),
 			mnesia:stop(),
-			init:stop(),
+			% init:stop(),
 			ok;
 		_ -> 
 			error
@@ -27,6 +29,9 @@ start() ->
 	mnesia:clear_table(country_codes),
 	mnesia:start(),
 	reset("country_codes.txt").
+
+stop() ->
+	mnesia:stop().
 
 reset(File) ->
 	{ok, Data} = file:consult(File),
