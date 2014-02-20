@@ -13,7 +13,7 @@
 
 benchmark(Type) when Type == dets; Type == ets ->
 	List = lists:seq(10, 90, 10) ++ lists:seq(100, 900, 100) ++ lists:seq(1000, 9000, 1000) ++ lists:seq(10000, 90000, 10000) ++ lists:seq(100000, 1000000, 100000),
-	io:format("# Records Time Status ~n"),
+	io:format("# Records Time Status ~p ~n",[Type]),
 	benchmark(Type, List).
 
 benchmark(_, List) when List == [] ->

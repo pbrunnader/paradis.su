@@ -7,7 +7,7 @@
 % 
 
 -module(unittest).
--export([test_all/0,test_country/0,test_ets_dets/0,test_mnesia/0,test_tracker/0]).
+-export([test_all/0,test_country/0,test_ets_dets/0,test_mnesia/0,test_tracker/0,benchmark/0]).
 
 test_all() ->
 	ok = test_mnesia(),
@@ -72,5 +72,19 @@ test_tracker() ->
 	["168.192.0.10","168.192.0.88"] = M:who_wants("secret.txt"),
 	[] = M:who_wants("file.txt"),
 	M:stop(),
+	ok.
+	
+benchmark() ->
+	io:format("~n"),
+	ets_dets:benchmark(ets),
+	ets_dets:benchmark(ets),
+	ets_dets:benchmark(ets),
+	ets_dets:benchmark(ets),
+	ets_dets:benchmark(ets),
+	ets_dets:benchmark(dets),
+	ets_dets:benchmark(dets),
+	ets_dets:benchmark(dets),
+	ets_dets:benchmark(dets),
+	ets_dets:benchmark(dets),
 	ok.
 	
