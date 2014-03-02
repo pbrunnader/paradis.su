@@ -28,6 +28,83 @@ test([H|Worker],List,Ref) ->
 	test(Worker,List,Ref).
 
 %
+% PARALLEL TIMEOUT
+%
+pmap_timeout(F, L, MaxTime, MaxWorkers) when length(L) < MaxWorkers ->
+	pmap_timeout(F, L, MaxTime, length(L));
+pmap_timeout(F, L, MaxTime, MaxWorkers) when MaxWorkers > 0 ->
+	S = self(),
+	Workers = lists:map(fun(I) ->
+		spawn(fun() -> 
+			worker(S, F, I, MaxTime) 
+		end) 
+	end, lists:seq(1, MaxWorkers)),
+	spawn(fun() -> scheduler(Workers, L, MaxWorkers, 0) end),
+	collect_max(MaxWorkers, 0).
+
+% collect_max(0, _) ->
+% 	[];
+% collect_max(MaxWorkers, ID) ->
+% 	receive
+% 		{ID, {_, Value}} ->
+% 			[Value|collect_max(MaxWorkers, ID + 1)];
+% 		{stop} ->
+% 			collect_max(MaxWorkers-1, ID)
+% 	end.
+
+% scheduler([Worker|Workers], [H|L], MaxWorkers, ID) when MaxWorkers > 0 ->
+% 	Worker ! {run, self(), ID, H},
+% 	scheduler(Workers ++ [Worker],L, MaxWorkers - 1, ID + 1);
+% scheduler(Workers,[H|L], 0, ID) ->
+% 	receive 
+% 		{next, Worker} ->
+% 			Worker ! {run, self(), ID, H},
+% 			scheduler(Workers, L, 0, ID + 1)
+% 	end;
+% scheduler([_|Workers],[], 0, ID) ->
+% 	receive 
+% 		{next, Worker} ->
+% 			Worker ! {stop},
+% 			scheduler(Workers, [], 0, ID)
+% 	end;
+% scheduler([],[], 0, _) ->
+% 	ok.
+
+worker(Parent, F, I, MaxTime) ->
+	receive
+		{run, Scheduler, ID, Value} when is_integer(Value) -> 
+			S = self(),
+				Timer = spawn_link(fun() -> timer(Parent, S, Scheduler, ID, MaxTime) end),
+			Result = F(Value),
+				Timer ! {stop},
+			Scheduler ! {next, self()},
+			Parent ! {ID, {Value, Result}},
+			worker(Parent, F, I, MaxTime);
+		{run, Scheduler, ID, Value} ->
+			Scheduler ! {next, self()},
+			Parent ! {ID, {Value, error}},
+			worker(Parent, F, I, MaxTime);
+		{stop} ->
+			Parent ! {stop},
+			ok;
+		X ->
+			io:format("EXIT ==> ~p : ~p ~n",[X,I])
+	end.
+
+timer(Parent, Worker, Scheduler, ID, MaxTime) ->
+	receive
+		{stop} -> 
+			ok
+		after 
+			MaxTime -> 
+				io:format("TIMEOUT! ~n"), 
+				Scheduler ! {replace, Worker}, 
+				Parent ! {ID, {unknown, timeout}},
+				exit(Worker,shutdown),
+				io:format("XXX! ~n")
+	end.
+
+%
 % SIMPLE MIDDLE MAN
 %
 simple_middle_man() ->
