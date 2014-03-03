@@ -15,7 +15,7 @@
 simple_middle_man() ->
 	register(input, spawn(?MODULE, input, [])),
 	register(output, spawn(?MODULE, output, [])),
-	register(middle, spawn_link(?MODULE, middle, [whereis(input),whereis(output)])),
+	register(middle, spawn(?MODULE, middle, [whereis(input),whereis(output)])),
 	ok.
 	
 input() ->
@@ -69,6 +69,86 @@ stop() ->
 	end.
 
 %
+% PARALLEL TIMEOUT
+%
+pmap_timeout(F, L, MaxTime, MaxWorkers) when length(L) < MaxWorkers ->
+	pmap_timeout(F, L, MaxTime, length(L));
+pmap_timeout(F, L, MaxTime, MaxWorkers) when MaxWorkers > 0 ->
+	S = self(),
+	Workers = lists:map(fun(I) ->
+		spawn(fun() -> 
+			worker(S, F, I, MaxTime) 
+		end) 
+	end, lists:seq(1, MaxWorkers)),
+	spawn(fun() -> scheduler(Workers, L, MaxWorkers, 0, S) end),
+	collect_timeout(MaxWorkers, 0).
+
+collect_timeout(MaxWorkers, ID) -> 
+	receive
+		{ID, {_, Value}} -> 
+			[Value|collect_timeout(MaxWorkers, ID + 1)];
+		{ID, {stop}} -> 
+			[]
+	end.
+
+scheduler([Worker|Workers], [H|L], MaxWorkers, ID, Parent) when MaxWorkers > 0 ->
+	Worker ! {run, self(), ID, H},
+	scheduler(Workers ++ [Worker],L, MaxWorkers - 1, ID + 1, Parent);
+scheduler(Workers,[H|L], 0, ID, Parent) ->
+	receive 
+		{next, Worker} ->
+			Worker ! {run, self(), ID, H},
+			scheduler(Workers, L, 0, ID + 1, Parent);
+ 		{replace, _, Parent, F, I, MaxTime} -> 
+ 			NewWorker = spawn(fun() -> worker(Parent, F, I, MaxTime) end),
+ 			NewWorker ! {run, self(), ID, H},
+ 			scheduler(Workers, L, 0, ID + 1, Parent)
+	end;
+scheduler([_|Workers],[], 0, ID, Parent) ->
+	receive 
+		{next, Worker} ->
+			Worker ! {stop},
+			scheduler(Workers, [], 0, ID, Parent);
+ 		{replace, Worker, _, _, _, _} ->
+ 			Worker ! {stop},
+ 			scheduler(Workers, [], 0, ID, Parent)
+	end;
+scheduler([],[], 0, ID, Parent) ->
+	Parent ! {ID, {stop}},
+	ok.
+
+worker(Parent, F, I, MaxTime) ->
+	receive
+		{run, Scheduler, ID, Value} when is_integer(Value) -> 
+			S = self(),
+				Timer = spawn(fun() -> timer(Parent, S, Scheduler, ID, MaxTime, F, I) end),
+			Result = F(Value),
+				Timer ! {stop},
+			Scheduler ! {next, self()},
+			Parent ! {ID, {Value, Result}},
+			worker(Parent, F, I, MaxTime);
+		{run, Scheduler, ID, Value} ->
+			Scheduler ! {next, self()},
+			Parent ! {ID, {Value, error}},
+			worker(Parent, F, I, MaxTime);
+		{stop} ->
+			Parent ! {stop},
+			ok
+	end.
+
+timer(Parent, Worker, Scheduler, ID, MaxTime, F, I) ->
+	receive
+		{stop} -> 
+			ok
+		after 
+			MaxTime -> 
+				exit(Worker,kill),
+				Scheduler ! {replace, Worker, Parent, F, I, MaxTime}, 
+				Parent ! {ID, {unknown, timeout}}
+	end.
+
+
+%
 % PARALLEL ANY TAGGED MAX TIME
 %
 pmap_any_tagged_max_time(F, L, MaxTime) ->
@@ -101,6 +181,7 @@ killall([Pid|Pids]) ->
 killall([]) ->
 	ok.
 
+
 %
 % PARALLEL ANY TAGGED
 %
@@ -108,6 +189,7 @@ pmap_any_tagged(F, L) ->
  	S = self(),
 	Pids = [spawn(fun() -> S ! {self(), {I, F(I)}} end) || I <- L],
 	collect_non_stable(Pids).
+
 
 %
 % PARALLEL ANY
@@ -124,6 +206,7 @@ collect_non_stable([_|Pids]) ->
 	end;
 collect_non_stable([]) ->
 	[].
+
 
 %
 % PARALLEL WITH MAX WORKERS
@@ -180,6 +263,7 @@ worker(Parent, F, I) ->
 			ok
 	end.
 
+
 %
 % SEQUENTIAL
 %
@@ -187,3 +271,11 @@ smap(_, []) ->
 	[];
 smap(F, [H|T]) -> 
 	[F(H) | smap(F, T)].
+
+
+%
+% FIB
+%
+fib(1) -> 1;
+fib(2) -> 1;
+fib(N) -> fib(N-1) + fib(N-2).
