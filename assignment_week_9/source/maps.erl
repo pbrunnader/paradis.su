@@ -9,109 +9,6 @@
 -module(maps).
 -compile(export_all).
 
-other() ->
-	{T, _} = timer:tc(?MODULE,pmap_any_tagged_max_time,[fun fib/1,[35,2,456,20],2000]),
-	T/1000000.
-
-test() ->
-	% Worker = [32,16,8,4,2,1],
-	Worker = lists:seq(2,10),
-	io:format("Workers: ~p ~n",[Worker]),
-	List = [ random:uniform(40) || _ <- lists:seq(1,200) ],
-	io:format(".. "),
-	{T, _} = timer:tc(?MODULE,smap,[fun fib/1,List]),
-	io:format("~p ~p ~p ~p ~p ~p ~n",[1, T/1000000, T/1000000, T, T/T, T/T]),
-	test(Worker,List, T),
-	ok.
-	
-test([],_,_) ->
-	ok;
-test([H|Worker],List,Ref) ->
-	io:format("."),
-	{T1, _} = timer:tc(?MODULE,pmap_max,[fun fib/1,List,H]),
-	io:format(". "),
-	{T2, _} = timer:tc(mapc,pmap_max,[fun fib/1,List,H]),
-	io:format("~p ~p ~p ~p ~p ~p ~n",[H, Ref, T1/1000000, T2/1000000, Ref/T1, Ref/T2]),
-	test(Worker,List,Ref).
-
-
-%
-% PARALLEL TIMEOUT
-%
-% pmap_timeout(F, L, MaxTime, MaxWorkers) when length(L) < MaxWorkers ->
-% 	pmap_timeout(F, L, MaxTime, length(L));
-% pmap_timeout(F, L, MaxTime, MaxWorkers) when MaxWorkers > 0 ->
-% 	S = self(),
-% 	Workers = lists:map(fun(I) ->
-% 		spawn(fun() -> 
-% 			worker(S, F, I, MaxTime) 
-% 		end) 
-% 	end, lists:seq(1, MaxWorkers)),
-% 	spawn(fun() -> scheduler(Workers, L, MaxWorkers, 0) end),
-% 	collect_max(MaxWorkers, 0).
-
-% collect_max(0, _) ->
-% 	[];
-% collect_max(MaxWorkers, ID) ->
-% 	receive
-% 		{ID, {_, Value}} ->
-% 			[Value|collect_max(MaxWorkers, ID + 1)];
-% 		{stop} ->
-% 			collect_max(MaxWorkers-1, ID)
-% 	end.
-
-% scheduler([Worker|Workers], [H|L], MaxWorkers, ID) when MaxWorkers > 0 ->
-% 	Worker ! {run, self(), ID, H},
-% 	scheduler(Workers ++ [Worker],L, MaxWorkers - 1, ID + 1);
-% scheduler(Workers,[H|L], 0, ID) ->
-% 	receive 
-% 		{next, Worker} ->
-% 			Worker ! {run, self(), ID, H},
-% 			scheduler(Workers, L, 0, ID + 1)
-% 	end;
-% scheduler([_|Workers],[], 0, ID) ->
-% 	receive 
-% 		{next, Worker} ->
-% 			Worker ! {stop},
-% 			scheduler(Workers, [], 0, ID)
-% 	end;
-% scheduler([],[], 0, _) ->
-% 	ok.
-
-% worker(Parent, F, I, MaxTime) ->
-% 	receive
-% 		{run, Scheduler, ID, Value} when is_integer(Value) -> 
-% 			S = self(),
-% 				Timer = spawn_link(fun() -> timer(Parent, S, Scheduler, ID, MaxTime, F, I) end),
-% 			Result = F(Value),
-% 				Timer ! {stop},
-% 			Scheduler ! {next, self()},
-% 			Parent ! {ID, {Value, Result}},
-% 			worker(Parent, F, I, MaxTime);
-% 		{run, Scheduler, ID, Value} ->
-% 			Scheduler ! {next, self()},
-% 			Parent ! {ID, {Value, error}},
-% 			worker(Parent, F, I, MaxTime);
-% 		{stop} ->
-% 			Parent ! {stop},
-% 			ok;
-% 		X ->
-% 			io:format("EXIT ==> ~p : ~p ~n",[X,I])
-% 	end.
-
-% timer(Parent, Worker, Scheduler, ID, MaxTime, F, I) ->
-% 	receive
-% 		{stop} -> 
-% 			ok
-% 		after 
-% 			MaxTime -> 
-% 				io:format("TIMEOUT! ~n"), 
-% 				Scheduler ! {replace, Worker, Parent, F, I}, 
-% 				Parent ! {ID, {unknown, timeout}},
-% 				% exit(kill),
-% 				io:format("XXX! ~n")
-% 	end.
-
 %
 % SIMPLE MIDDLE MAN
 %
@@ -261,19 +158,12 @@ scheduler(Workers,[H|L], 0, ID) ->
 		{next, Worker} ->
 			Worker ! {run, self(), ID, H},
 			scheduler(Workers, L, 0, ID + 1)
-% 		{replace, _, Parent, F, I} -> 
-% 			NewWorker = spawn(fun() -> worker(Parent, F, I) end),
-% 			NewWorker ! {run, self(), ID, H},
-% 			scheduler(Workers, L, 0, ID + 1)
 	end;
 scheduler([_|Workers],[], 0, ID) ->
 	receive 
 		{next, Worker} ->
 			Worker ! {stop},
 			scheduler(Workers, [], 0, ID)
-% 		{replace, Worker, _, _, _} ->
-% 			Worker ! {stop},
-% 			scheduler(Workers, [], 0, ID)
 	end;
 scheduler([],[], 0, _) ->
 	ok.
@@ -297,10 +187,3 @@ smap(_, []) ->
 	[];
 smap(F, [H|T]) -> 
 	[F(H) | smap(F, T)].
-
-%
-% FIB
-%
-fib(1) -> 1;
-fib(2) -> 1;
-fib(N) -> fib(N-1) + fib(N-2).
