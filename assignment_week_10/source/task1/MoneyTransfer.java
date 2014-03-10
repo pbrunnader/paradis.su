@@ -1,4 +1,4 @@
-// package task1;
+package task1;
 
 public class MoneyTransfer implements IAction, Runnable {
 	int amount = 0;

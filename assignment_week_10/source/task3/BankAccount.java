@@ -1,4 +1,4 @@
-// package task2;
+package task2;
 
 public class BankAccount {
 	// Database references.
