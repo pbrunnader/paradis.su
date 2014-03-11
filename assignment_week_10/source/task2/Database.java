@@ -32,7 +32,7 @@ public class Database {
 
 	public static void transaction(IAction action) {
 		lock.lock();
-		action.execute();
-		lock.unlock();
+		try { action.execute(); }
+		finally { lock.unlock(); }
 	}
 }
