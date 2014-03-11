@@ -3,7 +3,7 @@ package task1;
 public class Program {
 
 	private void runTest() {
-		for (int i = 0; i < 10000; i++) {
+		for (int i = 0; i < 100; i++) {
 			BankAccount account1 = new BankAccount();
 			account1.setBalance(200);
 			BankAccount account2 = new BankAccount();
